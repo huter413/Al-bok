@@ -181,6 +181,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun launchRuntime(id:String){
+        val root=File(filesDir,"Minecraft")
+        val runtimeDir=File(filesDir,"runtime")
+        val jar=File(root,"versions/"+id+"/Minecraft_"+id+".jar")
+        val javaBinary=File(runtimeDir,"bin/java")
+        if(!javaBinary.isFile || !jar.isFile){
+            AlertDialog.Builder(this).setTitle("Başlatılamıyor").setMessage("Java Runtime ve Minecraft JAR gerekli.").setPositiveButton("Tamam",null).show()
+            return
+        }
+        val ram=prefs.getString("ram","2048")?.toIntOrNull() ?: 2048
+        val jvm=prefs.getString("jvmArgs","")?.trim()?.split(Regex("\\s+"))?.filter{it.isNotBlank()} ?: emptyList()
+        Toast.makeText(this,"Minecraft Java başlatılıyor...",Toast.LENGTH_LONG).show()
+        MinecraftProcess(root,runtimeDir,jar,id,ram,jvm,
+            { _ -> },
+            { code -> runOnUiThread { Toast.makeText(this,"Minecraft çıkış kodu: $code",Toast.LENGTH_LONG).show() } }
+        ).start()
+    }
+
+    private fun oldLaunchRuntime_REMOVED(id:String){
         val runtimeDir=File(filesDir,"runtime")
         val javaBinary=File(runtimeDir,"bin/java")
         if(!javaBinary.exists()){
