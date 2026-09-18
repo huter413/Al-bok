@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
             if (jar.isFile) versions += GameVersion(folder.name, jar)
         }
         versions.sortByDescending { it.id }
-        renderVersions()
+        if (::versionsBox.isInitialized) renderVersions()
     }
 
     private fun renderVersions() {
