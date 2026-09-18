@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
 
@@ -54,11 +55,11 @@ class MainActivity : AppCompatActivity() {
     private fun scanVersions() {
         val base = File(filesDir, "Minecraft/versions").apply { mkdirs() }
         versions.clear()
-        base.listFiles()?.filter(File::isDirectory)?.forEach { dir ->
-            val jar = File(dir, "Minecraft_\${dir.name}.jar")
-            if (jar.isFile) versions += GameVersion(dir.name, jar)
+        base.listFiles()?.filter { it.isDirectory }?.forEach { folder ->
+            val jar = File(folder, "Minecraft_" + folder.name + ".jar")
+            if (jar.isFile) versions += GameVersion(folder.name, jar)
         }
-        versions.sortByDescending(GameVersion::id)
+        versions.sortByDescending { it.id }
         renderVersions()
     }
 
@@ -73,7 +74,7 @@ class MainActivity : AppCompatActivity() {
         }
         versions.forEach { version ->
             versionsBox.addView(Button(this).apply {
-                text = "Minecraft \${version.id}"
+                text = "Minecraft " + version.id
                 setOnClickListener { selectVersion(version) }
             })
         }
@@ -84,19 +85,19 @@ class MainActivity : AppCompatActivity() {
         val id = Regex("Minecraft_(.+)\\.jar", RegexOption.IGNORE_CASE).find(rawName)?.groupValues?.get(1)
             ?: Regex("([0-9]+(?:\\.[0-9]+){1,3})").find(rawName)?.value
             ?: "custom"
-        val dir = File(filesDir, "Minecraft/versions/\$id").apply { mkdirs() }
-        val output = File(dir, "Minecraft_\$id.jar")
+        val folder = File(filesDir, "Minecraft/versions/" + id).apply { mkdirs() }
+        val output = File(folder, "Minecraft_" + id + ".jar")
         contentResolver.openInputStream(uri)?.use { input ->
             output.outputStream().use { outputStream -> input.copyTo(outputStream) }
         }
         prefs.edit().putString("lastVersion", id).apply()
         scanVersions()
-        Toast.makeText(this, "Eklendi: Minecraft_\$id.jar", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "Eklendi: Minecraft_" + id + ".jar", Toast.LENGTH_LONG).show()
     }
 
     private fun selectVersion(version: GameVersion) {
         prefs.edit().putString("lastVersion", version.id).apply()
-        Toast.makeText(this, "Seçildi: Minecraft_\${version.id}.jar", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Seçildi: Minecraft_" + version.id + ".jar", Toast.LENGTH_SHORT).show()
     }
 
     private fun showSettings() {
