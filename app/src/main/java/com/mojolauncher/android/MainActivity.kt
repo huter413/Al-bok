@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity() {
         }
         versions.forEach { version ->
             versionsBox.addView(Button(this).apply {
-                text = "Minecraft " + version.id
+                text = if (version.id == prefs.getString("lastVersion", null)) "✓ Minecraft " + version.id else "Minecraft " + version.id
                 setOnClickListener { selectVersion(version) }
             })
         }
@@ -112,7 +112,7 @@ class MainActivity : AppCompatActivity() {
     private fun showGameSettings(id:String) {
         val root=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(28,24,28,24)}
         root.addView(TextView(this).apply{text="Minecraft "+id+" • Oyun Ayarları";textSize=24f})
-        root.addView(Button(this).apply{text="▶ Oyuna Geç";setOnClickListener{showTouchGameShell(id)}})
+        root.addView(Button(this).apply{text="▶ Oyuna Geç";setOnClickListener{launchRuntime(id)}})
         root.addView(Button(this).apply{text="Kontrolleri Ayarla";setOnClickListener{showControlsSettings()}})
         root.addView(Button(this).apply{text="Dokunmatik";setOnClickListener{showTouchSettings()}})
         root.addView(Button(this).apply{text="Performans";setOnClickListener{showSettings()}})
@@ -138,14 +138,22 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this).setTitle("Dokunmatik").setView(box).setPositiveButton("Kaydet"){_,_->prefs.edit().putBoolean("leftHanded",left.isChecked).putBoolean("tapBreak",tap.isChecked).putBoolean("quickUse",quick.isChecked).apply()}.setNegativeButton("İptal",null).show()
     }
 
-    private fun showTouchGameShell(id:String){
-        requestedOrientation=android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        val frame=FrameLayout(this)
-        frame.addView(TextView(this).apply{text="Minecraft "+id;textSize=22f;setPadding(24,18,0,0)})
-        frame.addView(TextView(this).apply{text="🕹";textSize=52f},FrameLayout.LayoutParams(180,180,android.view.Gravity.BOTTOM or android.view.Gravity.START).apply{setMargins(24,0,0,24)})
-        val names=arrayOf("↑","⌄","L","R","E")
-        for(i in names.indices) frame.addView(Button(this).apply{text=names[i]},FrameLayout.LayoutParams(110,80,android.view.Gravity.BOTTOM or android.view.Gravity.END).apply{setMargins(0,0,40+i*125,40)})
-        setContentView(frame)
+    private fun launchRuntime(id:String){
+        val runtimeDir=File(filesDir,"runtime")
+        val javaBinary=File(runtimeDir,"bin/java")
+        if(!javaBinary.exists()){
+            AlertDialog.Builder(this)
+                .setTitle("Java Runtime gerekli")
+                .setMessage("Minecraft Java JAR tek başına Android'de çalıştırılamaz. Yerleşik Java/LWJGL runtime bulunmadığı için sahte oyun ekranı açılmıyor. Runtime katmanı eklendiğinde Minecraft "+id+" buradan başlatılacak.")
+                .setPositiveButton("Tamam",null)
+                .show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Runtime bulundu")
+            .setMessage("Java runtime bulundu. Minecraft "+id+" için sürüm metadata, kütüphaneler, LWJGL natives ve varlıkların hazırlanması gerekiyor.")
+            .setPositiveButton("Tamam",null)
+            .show()
     }
 
     private fun showSettings() {
