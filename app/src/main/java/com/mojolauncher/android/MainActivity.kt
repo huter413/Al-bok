@@ -1,6 +1,7 @@
 package com.mojolauncher.android
 
 import android.net.Uri
+import java.util.zip.ZipInputStream
 import android.os.Bundle
 import android.view.WindowManager
 import android.widget.*
@@ -15,6 +16,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var versionsBox: LinearLayout
     private val versions = mutableListOf<GameVersion>()
     private val prefs by lazy { getSharedPreferences("launcher", MODE_PRIVATE) }
+    private val pickRuntime = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { importRuntime(it) } }
 
     private val pickJar = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { importJar(it) }
@@ -48,6 +50,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(ScrollView(this).apply { addView(versionsBox) }, LinearLayout.LayoutParams(-1,0,1f))
         val row=LinearLayout(this)
         row.addView(Button(this).apply { text="JAR Ekle"; setOnClickListener { pickJar.launch(arrayOf("application/java-archive","application/octet-stream","*/*")) } }, LinearLayout.LayoutParams(0,-2,1f))
+        row.addView(Button(this).apply { text="Java Runtime Ekle"; setOnClickListener { pickRuntime.launch(arrayOf("application/zip","application/octet-stream","*/*")) } }, LinearLayout.LayoutParams(0,-2,1f))
         row.addView(Button(this).apply { text="Ana Menü"; setOnClickListener { showMainMenu() } }, LinearLayout.LayoutParams(0,-2,1f))
         root.addView(row); setContentView(root); renderVersions()
     }
@@ -93,6 +96,45 @@ class MainActivity : AppCompatActivity() {
         prefs.edit().putString("lastVersion", id).apply()
         scanVersions()
         Toast.makeText(this, "Eklendi: Minecraft_" + id + ".jar", Toast.LENGTH_LONG).show()
+    }
+
+    private fun importRuntime(uri: Uri) {
+        val runtimeDir = File(filesDir, "runtime")
+        runtimeDir.deleteRecursively()
+        runtimeDir.mkdirs()
+        try {
+            contentResolver.openInputStream(uri)?.use { input ->
+                ZipInputStream(input).use { zip ->
+                    var entry = zip.nextEntry
+                    while (entry != null) {
+                        val normalized = entry.name.removePrefix("./").replace("\\\\", "/")
+                        if (normalized.isNotBlank() && !normalized.contains("..") && !normalized.startsWith("/")) {
+                            val out = File(runtimeDir, normalized)
+                            if (entry.isDirectory) out.mkdirs()
+                            else {
+                                out.parentFile?.mkdirs()
+                                out.outputStream().use { output -> zip.copyTo(output) }
+                                if (normalized == "bin/java" || normalized.endsWith("/bin/java")) out.setExecutable(true)
+                            }
+                        }
+                        zip.closeEntry()
+                        entry = zip.nextEntry
+                    }
+                }
+            }
+            val javaBinary = File(runtimeDir, "bin/java")
+            if (javaBinary.isFile) {
+                javaBinary.setExecutable(true)
+                prefs.edit().putBoolean("runtimeImported", true).apply()
+                Toast.makeText(this, "Java Runtime eklendi.", Toast.LENGTH_LONG).show()
+            } else {
+                runtimeDir.deleteRecursively()
+                Toast.makeText(this, "Geçersiz runtime: bin/java bulunamadı.", Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            runtimeDir.deleteRecursively()
+            Toast.makeText(this, "Runtime okunamadı: " + (e.message ?: "bilinmeyen hata"), Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun selectVersion(version: GameVersion) {
