@@ -27,29 +27,29 @@ class MainActivity : AppCompatActivity() {
         scanVersions()
     }
 
-    private fun buildUi() {
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(28, 24, 28, 24)
-        }
-        root.addView(TextView(this).apply { text = "Mojolauncher-Android"; textSize = 28f })
-        root.addView(TextView(this).apply {
-            text = "Minecraft Java • sürüm / profil / performans"
-            textSize = 14f
-        })
-        versionsBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        root.addView(versionsBox, LinearLayout.LayoutParams(-1, 0, 1f))
-        val row = LinearLayout(this)
-        row.addView(Button(this).apply {
-            text = "JAR Ekle"
-            setOnClickListener { pickJar.launch(arrayOf("application/java-archive", "application/octet-stream", "*/*")) }
-        }, LinearLayout.LayoutParams(0, -2, 1f))
-        row.addView(Button(this).apply {
-            text = "Ayarlar"
-            setOnClickListener { showSettings() }
-        }, LinearLayout.LayoutParams(0, -2, 1f))
-        root.addView(row)
+    private fun buildUi() { showMainMenu() }
+
+    private fun showMainMenu() {
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(28,24,28,24) }
+        root.addView(TextView(this).apply { text="Mojolauncher-Android"; textSize=28f })
+        root.addView(TextView(this).apply { text="Minecraft Java • mobil launcher"; textSize=14f })
+        root.addView(Space(this), LinearLayout.LayoutParams(1,24))
+        root.addView(Button(this).apply { text="▶ OYNA"; textSize=22f; setOnClickListener { startSelectedGame() } }, LinearLayout.LayoutParams(-1,0,1f))
+        root.addView(Button(this).apply { text="Sürümler"; setOnClickListener { showVersions() } })
+        root.addView(Button(this).apply { text="Ayarlar"; setOnClickListener { showSettings() } })
         setContentView(root)
+    }
+
+    private fun showVersions() {
+        val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(28,24,28,24) }
+        root.addView(TextView(this).apply { text="Sürümler"; textSize=26f })
+        versionsBox=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
+        root.addView(ScrollView(this).apply { addView(versionsBox) }, LinearLayout.LayoutParams(-1,0,1f))
+        val row=LinearLayout(this)
+        row.addView(Button(this).apply { text="JAR Ekle"; setOnClickListener { pickJar.launch(arrayOf("application/java-archive","application/octet-stream","*/*")) } }, LinearLayout.LayoutParams(0,-2,1f))
+        row.addView(Button(this).apply { text="Ana Menü"; setOnClickListener { showMainMenu() } }, LinearLayout.LayoutParams(0,-2,1f))
+        root.addView(row); setContentView(root); renderVersions()
     }
 
     private fun scanVersions() {
@@ -98,6 +98,54 @@ class MainActivity : AppCompatActivity() {
     private fun selectVersion(version: GameVersion) {
         prefs.edit().putString("lastVersion", version.id).apply()
         Toast.makeText(this, "Seçildi: Minecraft_" + version.id + ".jar", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun startSelectedGame() {
+        val id=prefs.getString("lastVersion",null)
+        if(id==null){ AlertDialog.Builder(this).setTitle("Sürüm seçilmedi").setMessage("Önce Sürümler bölümünden JAR ekleyip seç.").setPositiveButton("Sürümler"){_,_->showVersions()}.setNegativeButton("İptal",null).show(); return }
+        val jar=File(filesDir,"Minecraft/versions/"+id+"/Minecraft_"+id+".jar")
+        if(!jar.isFile){Toast.makeText(this,"JAR bulunamadı.",Toast.LENGTH_LONG).show();return}
+        requestedOrientation=android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        showGameSettings(id)
+    }
+
+    private fun showGameSettings(id:String) {
+        val root=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(28,24,28,24)}
+        root.addView(TextView(this).apply{text="Minecraft "+id+" • Oyun Ayarları";textSize=24f})
+        root.addView(Button(this).apply{text="▶ Oyuna Geç";setOnClickListener{showTouchGameShell(id)}})
+        root.addView(Button(this).apply{text="Kontrolleri Ayarla";setOnClickListener{showControlsSettings()}})
+        root.addView(Button(this).apply{text="Dokunmatik";setOnClickListener{showTouchSettings()}})
+        root.addView(Button(this).apply{text="Performans";setOnClickListener{showSettings()}})
+        root.addView(Button(this).apply{text="Ana Menü";setOnClickListener{showMainMenu()}})
+        setContentView(root)
+    }
+
+    private fun showControlsSettings(){
+        val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
+        val sens=EditText(this).apply{hint="Kamera hassasiyeti";setText(prefs.getString("sensitivity","1.0"))}
+        val joy=EditText(this).apply{hint="Joystick boyutu";setText(prefs.getString("joystick","1.0"))}
+        val sprint=CheckBox(this).apply{text="Otomatik sprint";isChecked=prefs.getBoolean("autoSprint",false)}
+        box.addView(sens);box.addView(joy);box.addView(sprint)
+        AlertDialog.Builder(this).setTitle("Kontroller").setView(box).setPositiveButton("Kaydet"){_,_->prefs.edit().putString("sensitivity",sens.text.toString()).putString("joystick",joy.text.toString()).putBoolean("autoSprint",sprint.isChecked).apply()}.setNegativeButton("İptal",null).show()
+    }
+
+    private fun showTouchSettings(){
+        val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
+        val left=CheckBox(this).apply{text="Solak mod";isChecked=prefs.getBoolean("leftHanded",false)}
+        val tap=CheckBox(this).apply{text="Dokunarak kır";isChecked=prefs.getBoolean("tapBreak",true)}
+        val quick=CheckBox(this).apply{text="Hızlı eşya kullan";isChecked=prefs.getBoolean("quickUse",true)}
+        box.addView(left);box.addView(tap);box.addView(quick)
+        AlertDialog.Builder(this).setTitle("Dokunmatik").setView(box).setPositiveButton("Kaydet"){_,_->prefs.edit().putBoolean("leftHanded",left.isChecked).putBoolean("tapBreak",tap.isChecked).putBoolean("quickUse",quick.isChecked).apply()}.setNegativeButton("İptal",null).show()
+    }
+
+    private fun showTouchGameShell(id:String){
+        requestedOrientation=android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        val frame=FrameLayout(this)
+        frame.addView(TextView(this).apply{text="Minecraft "+id;textSize=22f;setPadding(24,18,0,0)})
+        frame.addView(TextView(this).apply{text="🕹";textSize=52f},FrameLayout.LayoutParams(180,180,android.view.Gravity.BOTTOM or android.view.Gravity.START).apply{setMargins(24,0,0,24)})
+        val names=arrayOf("↑","⌄","L","R","E")
+        for(i in names.indices) frame.addView(Button(this).apply{text=names[i]},FrameLayout.LayoutParams(110,80,android.view.Gravity.BOTTOM or android.view.Gravity.END).apply{setMargins(0,0,40+i*125,40)})
+        setContentView(frame)
     }
 
     private fun showSettings() {
