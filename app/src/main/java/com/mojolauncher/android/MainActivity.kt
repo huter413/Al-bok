@@ -16,7 +16,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var versionsBox: LinearLayout
     private val versions = mutableListOf<GameVersion>()
     private val prefs by lazy { getSharedPreferences("launcher", MODE_PRIVATE) }
-    private val pickRuntime = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { importRuntime(it) } }\n    private val pickBundle = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { importGameBundle(it) } }
+    private val pickRuntime = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { importRuntime(it) } }
+    private val pickBundle = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { importGameBundle(it) } }
 
     private val pickJar = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { importJar(it) }
@@ -50,7 +51,8 @@ class MainActivity : AppCompatActivity() {
         root.addView(ScrollView(this).apply { addView(versionsBox) }, LinearLayout.LayoutParams(-1,0,1f))
         val row=LinearLayout(this)
         row.addView(Button(this).apply { text="JAR Ekle"; setOnClickListener { pickJar.launch(arrayOf("application/java-archive","application/octet-stream","*/*")) } }, LinearLayout.LayoutParams(0,-2,1f))
-        row.addView(Button(this).apply { text="Java Runtime Ekle"; setOnClickListener { pickRuntime.launch(arrayOf("application/zip","application/octet-stream","*/*")) } }, LinearLayout.LayoutParams(0,-2,1f))\n        row.addView(Button(this).apply { text="Oyun Dosyaları Ekle"; setOnClickListener { pickBundle.launch(arrayOf("application/zip","application/octet-stream","*/*")) } }, LinearLayout.LayoutParams(0,-2,1f))
+        row.addView(Button(this).apply { text="Java Runtime Ekle"; setOnClickListener { pickRuntime.launch(arrayOf("application/zip","application/octet-stream","*/*")) } }, LinearLayout.LayoutParams(0,-2,1f))
+        row.addView(Button(this).apply { text="Oyun Dosyaları Ekle"; setOnClickListener { pickBundle.launch(arrayOf("application/zip","application/octet-stream","*/*")) } }, LinearLayout.LayoutParams(0,-2,1f))
         row.addView(Button(this).apply { text="Ana Menü"; setOnClickListener { showMainMenu() } }, LinearLayout.LayoutParams(0,-2,1f))
         root.addView(row); setContentView(root); renderVersions()
     }
@@ -189,7 +191,8 @@ class MainActivity : AppCompatActivity() {
         root.addView(Button(this).apply{text="Kontrolleri Ayarla";setOnClickListener{showControlsSettings()}})
         root.addView(Button(this).apply{text="Dokunmatik";setOnClickListener{showTouchSettings()}})
         root.addView(Button(this).apply{text="Performans";setOnClickListener{showSettings()}})
-        root.addView(Button(this).apply{text="Dosya Günlüğü";setOnClickListener{showLogs()}})\n        root.addView(Button(this).apply{text="Ana Menü";setOnClickListener{showMainMenu()}})
+        root.addView(Button(this).apply{text="Dosya Günlüğü";setOnClickListener{showLogs()}})
+        root.addView(Button(this).apply{text="Ana Menü";setOnClickListener{showMainMenu()}})
         setContentView(root)
     }
 
